@@ -1,5 +1,5 @@
 ﻿#include "../exercise.h"
-
+#include <cstring>
 // READ: 类模板 <https://zh.cppreference.com/w/cpp/language/class_template>
 
 template<class T>
@@ -8,8 +8,8 @@ struct Tensor4D {
     T *data;
 
     Tensor4D(unsigned int const shape_[4], T const *data_) {
-        unsigned int size = 1;
-        // TODO: 填入正确的 shape 并计算 size
+        std::memcpy(shape, shape_, sizeof(shape));
+        unsigned int size = shape[0] * shape[1] * shape[2] * shape[3];
         data = new T[size];
         std::memcpy(data, data_, size * sizeof(T));
     }
@@ -28,6 +28,29 @@ struct Tensor4D {
     // 则 `this` 与 `others` 相加时，3 个形状为 `[1, 2, 1, 4]` 的子张量各自与 `others` 对应项相加。
     Tensor4D &operator+=(Tensor4D const &others) {
         // TODO: 实现单向广播的加法
+        for (int i = 0; i < 4; ++i) {
+            if (shape[i] != others.shape[i] && others.shape[i] != 1) {
+                throw std::invalid_argument("Shapes are incompatible for broadcasting");
+            }
+        }
+        for (unsigned int i = 0; i < shape[0]; ++i) {
+            for (unsigned int j = 0; j < shape[1]; ++j) {
+                for (unsigned int k = 0; k < shape[2]; ++k) {
+                    for (unsigned int l = 0; l < shape[3]; ++l) {
+                        unsigned int this_idx = ((i  * shape[1] + j) * shape[2] + k) * shape[3] + l;
+                        // 单向广播，只需检查other 是否为1即可
+                        unsigned int i_ = others.shape[0] == 1 ? 0 : i;
+                        unsigned int j_ = others.shape[1] == 1 ? 0 : j;
+                        unsigned int k_ = others.shape[2] == 1 ? 0 : k;
+                        unsigned int l_ = others.shape[3] == 1 ? 0 : l;
+                        unsigned int other_idx = ((i_  * others.shape[1] + j_) * others.shape[2] + k_) * others.shape[3] + l_;
+
+                        // 赋值
+                        data[this_idx] += others.data[other_idx];
+                    }
+                }
+            }
+        }
         return *this;
     }
 };
